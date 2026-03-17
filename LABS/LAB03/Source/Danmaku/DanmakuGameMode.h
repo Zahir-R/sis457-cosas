@@ -7,6 +7,15 @@
 #include "MyActor.h"
 #include "DanmakuGameMode.generated.h"
 
+enum class ESwarmState : uint8
+{
+	InitialLineUp,
+	WaitingInLine,
+	Roaming,
+	Surrounding,
+	Researching
+};
+
 UCLASS(MinimalAPI)
 class ADanmakuGameMode : public AGameModeBase
 {
@@ -22,22 +31,21 @@ public:
 	
 private:
 	TArray<AMyActor*> SpawnedActors;
-	AActor* TargetToSurround;
-	bool bWaitingLand;
-	float LandingDelay = 0.0f;
-
 	int32 ActorCount = 20;
+
 	float MinLocation = -1000.0f;
 	float MaxLocation= 1000.0f;
-	FRotator Rotation = FRotator::ZeroRotator;
 
+	AActor* TargetToSurround;
+	float LandingDelay = 0.0f;
 	void ExecuteSurround();
+
+	FRotator Rotation = FRotator::ZeroRotator;
 	
 	float FormationTimer = 5.0f;
-	bool bHasLinedUp = false;
-	bool bIsWaitingInLine = false;
+	
+	ESwarmState CurrentState = ESwarmState::InitialLineUp;
 
 	void ExecuteLineUp();
 	void ReleaseFormation();
-
 };

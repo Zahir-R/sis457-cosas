@@ -46,9 +46,9 @@ void ADanmakuGameMode::NotifyImpact(AActor* HitActor)
 	if (!HitActor) return;
 
 	TargetToSurround = HitActor;
-	bWaitingLand = true;
-
 	LandingDelay = 0.5f;
+
+	if (CurrentState == ESwarmState::Surrounding) CurrentState = ESwarmState::Roaming;
 }
 
 void ADanmakuGameMode::ExecuteSurround()
@@ -83,50 +83,63 @@ void ADanmakuGameMode::ExecuteSurround()
 		FVector TargetPos = Center + Offset;
 		TargetPos.Z = SpawnedActors[i]->GetActorLocation().Z;
 
-		float ArcMultiplier = (FMath::Abs(RelativeAngle) > PI * 0.5f) ? 2.0f : 1.2f;
+		float ArcMultiplier = (FMath::Abs(RelativeAngle) > PI * 0.5f) ? 1.2f : 0.5f;
 		SpawnedActors[i]->MoveToCircle(TargetPos, ArcMultiplier);
 	}
+
+	FormationTimer = 5.0f;
 }
 
 void ADanmakuGameMode::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (!bHasLinedUp)
+	switch (CurrentState)
 	{
+	case ESwarmState::InitialLineUp:
 		FormationTimer -= DeltaTime;
 		if (FormationTimer <= 0.0f)
 		{
 			ExecuteLineUp();
-			bHasLinedUp = true;
-			bIsWaitingInLine = true;
+			CurrentState = ESwarmState::WaitingInLine;
 			FormationTimer = 5.0f;
 		}
-	} 
-	else if (bIsWaitingInLine)
-	{
+		break;
+
+	case ESwarmState::WaitingInLine:
+		FormationTimer -= DeltaTime;
+
+		if (TargetToSurround && LandingDelay <= 0.0f && TargetToSurround->GetVelocity().Size() < 1.0f)
+		{
+			ExecuteSurround();
+			CurrentState = ESwarmState::Surrounding;
+		}
+		else if (FormationTimer <= 0.0f)
+		{
+			ReleaseFormation();
+			CurrentState = ESwarmState::Roaming;
+		}
+		break;
+
+	case ESwarmState::Roaming:
+		if (TargetToSurround && LandingDelay <= 0.0f && TargetToSurround->GetVelocity().Size() < 1.0f)
+		{
+			ExecuteSurround();
+			CurrentState = ESwarmState::Surrounding;
+		}
+		break;
+
+	case ESwarmState::Surrounding:
 		FormationTimer -= DeltaTime;
 		if (FormationTimer <= 0.0f)
 		{
-			ReleaseFormation();
-			bIsWaitingInLine = false;
-		}
-	}
-	else if (bWaitingLand && TargetToSurround)
-	{
-		if (LandingDelay > 0.0f)
-		{
-			LandingDelay -= DeltaTime;
-			return;
-		}
-
-		if (TargetToSurround->GetVelocity().Size() < 1.0f)
-		{
-			ExecuteSurround();
-			bWaitingLand = false;
 			TargetToSurround = nullptr;
+			CurrentState = ESwarmState::Roaming;
 		}
+		break;
 	}
+
+	if (LandingDelay > 0.0f) LandingDelay -= DeltaTime;
 }
 
 void ADanmakuGameMode::ExecuteLineUp()
