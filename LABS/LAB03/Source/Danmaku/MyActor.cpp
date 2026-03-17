@@ -3,7 +3,6 @@
 
 #include "MyActor.h"
 #include "Components/StaticMeshComponent.h"
-//#include "UObject/ConstructorHelpers.h"
 
 // Sets default values
 AMyActor::AMyActor()
@@ -19,22 +18,7 @@ AMyActor::AMyActor()
 	{
 		MeshComponent->SetStaticMesh(MeshAsset.Object);
 	}
-	/*
-	MeshComponent->SetVisibility(true);
-
-	MeshComponent->SetHiddenInGame(false);
-
-	NumDirections = 20;
-	AngleStep = 2 * PI / NumDirections;
-	CurrentAngle = 0.f;
-
-	MoveSpeed = 200.f;
-	MaxDistance = 300.f;
-	DistanceTraveled = 0.f;
-	DirectionIndex = 0;
-
-	CurrentDirection = FVector(0.f, -1.f, 0.f);
-*/}
+}
 
 // Called when the game starts or when spawned
 void AMyActor::BeginPlay()
@@ -58,17 +42,24 @@ void AMyActor::BeginPlay()
 
 }
 
-void AMyActor::MoveToCircle(FVector TargetLocation)
+void AMyActor::MoveToCircle(FVector TargetLocation, float ArcMultiplier)
 {
 	CircleLocation = TargetLocation;
 	CurveStartLocation = GetActorLocation();
 
+	float DistanceToTarget = FVector::Dist(CurveStartLocation, CircleLocation);
 	FVector MidPoint = (CurveStartLocation + CircleLocation) * 0.5f;
 	FVector Direction = (CircleLocation - CurveStartLocation).GetSafeNormal();
 
-	FVector SideOffset = FVector::CrossProduct(FVector::UpVector, Direction) * 500.0f;
+	FVector SideOffset = FVector::CrossProduct(FVector::UpVector, Direction) * (DistanceToTarget * 0.5f * ArcMultiplier);
 
-	if (FMath::RandBool()) SideOffset *= -1.0f;
+	if (SideOffset.SizeSquared() > 0.1f)
+	{
+		FVector TowardCenter = -MidPoint;
+		TowardCenter.Z = 0;
+
+		if (FVector::DotProduct(SideOffset, TowardCenter) > 0.0f) SideOffset *= -1.0f;
+	}
 
 	CurveControlPoint = MidPoint + SideOffset;
 
@@ -120,25 +111,6 @@ void AMyActor::Tick(float DeltaTime)
 		}
 		else {
 			WaitTimer += DeltaTime;
-		/* }
-
-		FVector CurrentLocation = GetActorLocation();
-		CircleLocation.Z = CurrentLocation.Z;
-		float Distance = FVector::Dist(CurrentLocation, CircleLocation);
-
-		if (Distance > Tolerance)
-		{
-			FVector Dir = (CircleLocation - CurrentLocation).GetSafeNormal();
-			SetActorLocation(CurrentLocation + (Dir * MovementSpeed * DeltaTime));
-		}
-		else if (!bWaitingForManualResume)
-		{*/
-			//WaitTimer += DeltaTime;
-			//if (WaitTimer >= 2.0f) ResumeAutoMovement();
-		//}
-	//	else
-		//{
-			//WaitTimer += DeltaTime;
 			if (WaitTimer >= 2.0f) {
 				MovementSpeed = OriginalMovementSpeed;
 				bInCircleMode = false;
@@ -168,25 +140,5 @@ void AMyActor::Tick(float DeltaTime)
 			SetActorLocation(NewLocation);
 		}
 	}
-	
-	
-	/*
-	CurrentAngle += DeltaTime * (MoveSpeed / MaxDistance);
-	CurrentDirection = FVector(FMath::Cos(CurrentAngle), FMath::Sin(CurrentAngle), 0.f);
-
-	FVector DeltaMove = CurrentDirection * MoveSpeed * DeltaTime;
-	AddActorWorldOffset(DeltaMove);
-
-	DistanceTraveled += DeltaMove.Size();
-	*/
-	/*if (DistanceTraveled >= MaxDistance)
-	{
-		DistanceTraveled = 0.f;
-		DirectionIndex = (DirectionIndex + 1) % NumDirections;
-
-		CurrentAngle = DirectionIndex * AngleStep;
-		CurrentDirection = FVector(FMath::Cos(CurrentAngle), FMath::Sin(CurrentAngle), 0.f);
-	}*/
-
 }
 

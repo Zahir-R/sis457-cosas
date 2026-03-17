@@ -29,7 +29,7 @@ public:
 	FVector WorldLimitsMin = FVector(-1000, -1000, 0);
 	FVector WorldLimitsMax = FVector(1000, 1000, 0);
 
-	void MoveToCircle(FVector TargetLocation);
+	void MoveToCircle(FVector TargetLocation, float ArcMultiplier = 1.0f);
 	void MoveToFormation(FVector TargetLocation, bool bManualResume = false);
 	void ResumeAutoMovement();
 

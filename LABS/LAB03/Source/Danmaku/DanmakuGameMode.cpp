@@ -56,17 +56,35 @@ void ADanmakuGameMode::ExecuteSurround()
 	if (!TargetToSurround) return;
 	
 	FVector Center = TargetToSurround->GetActorLocation();
-	float Radius = 1000.0f;
+	float Radius = 500.0f;
 	int32 TotalActors = SpawnedActors.Num();
 	
+	SpawnedActors.Sort([Center](const AMyActor& A, const AMyActor& B)
+		{
+			FVector DirA = (A.GetActorLocation() - Center).GetSafeNormal();
+			FVector DirB = (B.GetActorLocation() - Center).GetSafeNormal();
+
+			float AngleA = FMath::Atan2(DirA.Y, DirA.X);
+			float AngleB = FMath::Atan2(DirB.Y, DirB.X);
+			return AngleA < AngleB;
+		});
+
+	FVector AverageDir = FVector::ZeroVector;
+	for (AMyActor* Actor : SpawnedActors) AverageDir += (Actor->GetActorLocation() - Center).GetSafeNormal();
+	
+	float SwarmCenterAngle = FMath::Atan2(AverageDir.Y, AverageDir.X);
 
 	for (int32 i = 0; i < TotalActors; i++)
 	{
-		float Angle = i * (2.0f * PI / TotalActors);
-		FVector Offset(FMath::Cos(Angle) * Radius, FMath::Sin(Angle) * Radius, 0.0f);
+		float RelativeAngle = ((float)i / (float)TotalActors - 0.5f) * (2.0f * PI);
+		float FinalAngle = SwarmCenterAngle + RelativeAngle;
+
+		FVector Offset(FMath::Cos(FinalAngle) * Radius, FMath::Sin(FinalAngle) * Radius, 0.0f);
 		FVector TargetPos = Center + Offset;
 		TargetPos.Z = SpawnedActors[i]->GetActorLocation().Z;
-		SpawnedActors[i]->MoveToCircle(TargetPos);
+
+		float ArcMultiplier = (FMath::Abs(RelativeAngle) > PI * 0.5f) ? 2.0f : 1.2f;
+		SpawnedActors[i]->MoveToCircle(TargetPos, ArcMultiplier);
 	}
 }
 
@@ -94,8 +112,7 @@ void ADanmakuGameMode::Tick(float DeltaTime)
 			bIsWaitingInLine = false;
 		}
 	}
-
-	if (bWaitingLand && TargetToSurround)
+	else if (bWaitingLand && TargetToSurround)
 	{
 		if (LandingDelay > 0.0f)
 		{
