@@ -63,26 +63,44 @@ void AMyActor::MoveToCircle(FVector TargetLocation, float ArcMultiplier)
 
 	CurveControlPoint = MidPoint + SideOffset;
 
-	OriginalMovementSpeed = MovementSpeed;
-	MovementSpeed = 1500;
+	if (CurrentState != EMovementState::MovingTo) OriginalMovementSpeed = MovementSpeed;
 
-	bInCircleMode = true;
-	bIsCurving = true;
+	MovementSpeed = 1500;
 	CurveAlpha = 0.0f;
+
 	WaitTimer = 0.0f;
+
+	CurrentState = EMovementState::MovingTo;
+}
+
+void AMyActor::MoveToArc(FVector Center, FVector Target, float Radius, float TotalAngleDegree, int32 ActorIndex, int32 TotalActors)
+{
+	FVector DirToTarget = (Target - Center).GetSafeNormal();
+
+	FVector SideDir = FVector::CrossProduct(FVector::UpVector, DirToTarget);
+
+	float SpreadFraction = (TotalActors > 1) ? ((float)ActorIndex / (TotalActors - 1)) : 0.5f;
+	float VisualOffset = (SpreadFraction * 2.0f - 1.0f);
+	float HorizontalSpacing = 500.0f;
+	float ForwardAmount = FMath::Abs(VisualOffset) * 300.0f;
+
+	FVector Offset = (SideDir * (VisualOffset * HorizontalSpacing)) + (DirToTarget * ForwardAmount);
+
+	FVector ArcDestination = Center + Offset;
+
+	MoveToCircle(ArcDestination, 0.4f);
 }
 
 void AMyActor::MoveToFormation(FVector TargetLocation, bool bManualResume)
 {
 	MoveToCircle(TargetLocation);
-	bWaitingForManualResume = bManualResume;
+	if (bManualResume) CurrentState = EMovementState::MovingTo;
 }
 
 void AMyActor::ResumeAutoMovement()
 {
 	MovementSpeed = OriginalMovementSpeed;
-	bInCircleMode = false;
-	bWaitingForManualResume = false;
+	CurrentState = EMovementState::Roaming;
 }
 
 // Called every frame
@@ -90,55 +108,46 @@ void AMyActor::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	
-	if (bInCircleMode)
+	switch (CurrentState)
 	{
-		if (bIsCurving)
-		{
-			CurveAlpha += (MovementSpeed / FVector::Dist(CurveStartLocation, CircleLocation)) * DeltaTime;
-		
-			if (CurveAlpha >= 1.0f)
-			{
-				SetActorLocation(CircleLocation);
-				bIsCurving = false;
-			}
-			else
-			{
-				float T = CurveAlpha;
-				FVector NewLoc = FMath::Square(1.0f - T) * CurveStartLocation + 2.0f * (1.0f - T) * T * CurveControlPoint + FMath::Square(T) * CircleLocation;
-
-				SetActorLocation(NewLoc);
-			}
-		}
-		else {
-			WaitTimer += DeltaTime;
-			if (WaitTimer >= 2.0f) {
-				MovementSpeed = OriginalMovementSpeed;
-				bInCircleMode = false;
-			}
-		}
-	}
-
-	else if (WayPoints.Num() > 1)
+	case EMovementState::Roaming:
 	{
+		if (WayPoints.Num() <= 1) break;
+
 		FVector CurrentLocation = GetActorLocation();
 		FVector FinalLocation = WayPoints[IndexWayPoint];
 
-		float Distance = FVector::Dist(CurrentLocation, FinalLocation);
-
-		if (Distance <= Tolerance)
+		if (FVector::Dist(CurrentLocation, FinalLocation) <= Tolerance)
 		{
-			IndexWayPoint++;
-			if (IndexWayPoint >= WayPoints.Num())
-			{
-				IndexWayPoint = 0;
-			}
+			IndexWayPoint = (IndexWayPoint + 1) % WayPoints.Num();
 		}
 		else
 		{
 			FVector Direction = (FinalLocation - CurrentLocation).GetSafeNormal();
-			FVector NewLocation = CurrentLocation + (Direction * MovementSpeed * DeltaTime);
-			SetActorLocation(NewLocation);
+			SetActorLocation(CurrentLocation + (Direction * MovementSpeed * DeltaTime));
 		}
+		break;
+	}
+	case EMovementState::MovingTo:
+	{
+		CurveAlpha += (MovementSpeed / FVector::Dist(CurveStartLocation, CircleLocation)) * DeltaTime;
+
+		if (CurveAlpha >= 1.0f)
+		{
+			SetActorLocation(CircleLocation);
+			MovementSpeed = OriginalMovementSpeed;
+		}
+		else
+		{
+			float T = CurveAlpha;
+			FVector NewLoc = FMath::Square(1.0f - T) * CurveStartLocation + 2.0f * (1.0f - T) * T * CurveControlPoint + FMath::Square(T) * CircleLocation;
+			SetActorLocation(NewLoc);
+		}
+		break;
+	}
+	case EMovementState::Stationary:
+	case EMovementState::ManualWait:
+		break;
 	}
 }
 

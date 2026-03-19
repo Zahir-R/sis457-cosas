@@ -42,7 +42,7 @@ void ADanmakuProjectile::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor,
 		ADanmakuGameMode* GameMode = Cast<ADanmakuGameMode>(GetWorld()->GetAuthGameMode());
 		if (GameMode && OtherComp->IsSimulatingPhysics())
 		{
-			GameMode->NotifyImpact(OtherActor);
+			GameMode->NotifyImpact(OtherActor, SpawnLocation);
 		}
 		
 		if (OtherComp->IsSimulatingPhysics()) {
@@ -51,4 +51,10 @@ void ADanmakuProjectile::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor,
 	}
 
 	Destroy();
+}
+
+void ADanmakuProjectile::BeginPlay()
+{
+	Super::BeginPlay();
+	SpawnLocation = GetActorLocation();
 }

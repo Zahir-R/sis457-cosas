@@ -27,7 +27,7 @@ public:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
 
-	void NotifyImpact(AActor* HitActor);
+	void NotifyImpact(AActor* HitActor, FVector Origin);
 	
 private:
 	TArray<AMyActor*> SpawnedActors;
@@ -48,4 +48,7 @@ private:
 
 	void ExecuteLineUp();
 	void ReleaseFormation();
+
+	FVector ProjectileShotOrigin;
+	void ExecuteResearch();
 };

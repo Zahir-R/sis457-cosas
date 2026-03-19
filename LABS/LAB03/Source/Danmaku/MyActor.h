@@ -6,6 +6,14 @@
 #include "GameFramework/Actor.h"
 #include "MyActor.generated.h"
 
+enum class EMovementState : uint8
+{
+	Roaming,
+	MovingTo,
+	Stationary,
+	ManualWait
+};
+
 UCLASS()
 class DANMAKU_API AMyActor : public AActor
 {
@@ -32,7 +40,7 @@ public:
 	void MoveToCircle(FVector TargetLocation, float ArcMultiplier = 1.0f);
 	void MoveToFormation(FVector TargetLocation, bool bManualResume = false);
 	void ResumeAutoMovement();
-
+	void MoveToArc(FVector Center, FVector Target, float Radius, float TotalAngleDegree, int32 ActorIndex, int32 TotalActors);
 
 protected:
 	TArray<FVector> WayPoints;
@@ -40,16 +48,18 @@ protected:
 	FVector InitialPosition;
 	float Tolerance = 50.0f;
 
-	bool bInCircleMode = false;
+	// bool bInCircleMode = false;
 	float WaitTimer = 0.0f;
 	FVector CircleLocation;
 
 	float OriginalMovementSpeed;
-	bool bWaitingForManualResume = false;
+	// bool bWaitingForManualResume = false;
 
-	bool bIsCurving = false;
+	// bool bIsCurving = false;
 	FVector CurveStartLocation;
 	FVector CurveControlPoint;
 	float CurveAlpha = 0.0f;
 	float CurveSpeed = 1.0f;
+
+	EMovementState CurrentState = EMovementState::Roaming;
 };

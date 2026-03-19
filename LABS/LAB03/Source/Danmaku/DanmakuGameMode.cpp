@@ -41,11 +41,12 @@ void ADanmakuGameMode::BeginPlay()
 	}
 }
 
-void ADanmakuGameMode::NotifyImpact(AActor* HitActor)
+void ADanmakuGameMode::NotifyImpact(AActor* HitActor, FVector Origin)
 {
 	if (!HitActor) return;
 
 	TargetToSurround = HitActor;
+	ProjectileShotOrigin = Origin;
 	LandingDelay = 0.5f;
 
 	if (CurrentState == ESwarmState::Surrounding) CurrentState = ESwarmState::Roaming;
@@ -86,8 +87,20 @@ void ADanmakuGameMode::ExecuteSurround()
 		float ArcMultiplier = (FMath::Abs(RelativeAngle) > PI * 0.5f) ? 1.2f : 0.5f;
 		SpawnedActors[i]->MoveToCircle(TargetPos, ArcMultiplier);
 	}
+}
 
-	FormationTimer = 5.0f;
+void ADanmakuGameMode::ExecuteResearch()
+{
+	if (!TargetToSurround) return;
+
+	float DistToBox = FVector::Dist(ProjectileShotOrigin, TargetToSurround->GetActorLocation());
+	float ArcRadius = DistToBox * 0.9;
+	int32 Total = SpawnedActors.Num();
+
+	for (int32 i = 0; i < Total; i++)
+	{
+		SpawnedActors[i]->MoveToArc(ProjectileShotOrigin, TargetToSurround->GetActorLocation(), ArcRadius, 90.0f, i, Total);
+	}
 }
 
 void ADanmakuGameMode::Tick(float DeltaTime)
@@ -109,15 +122,10 @@ void ADanmakuGameMode::Tick(float DeltaTime)
 	case ESwarmState::WaitingInLine:
 		FormationTimer -= DeltaTime;
 
-		if (TargetToSurround && LandingDelay <= 0.0f && TargetToSurround->GetVelocity().Size() < 1.0f)
-		{
-			ExecuteSurround();
-			CurrentState = ESwarmState::Surrounding;
-		}
-		else if (FormationTimer <= 0.0f)
+		if (FormationTimer <= 0.0f || (TargetToSurround && LandingDelay <= 0.0f))
 		{
 			ReleaseFormation();
-			CurrentState = ESwarmState::Roaming;
+			CurrentState = ESwarmState::Roaming;	
 		}
 		break;
 
@@ -125,6 +133,7 @@ void ADanmakuGameMode::Tick(float DeltaTime)
 		if (TargetToSurround && LandingDelay <= 0.0f && TargetToSurround->GetVelocity().Size() < 1.0f)
 		{
 			ExecuteSurround();
+			FormationTimer = 5.0f;
 			CurrentState = ESwarmState::Surrounding;
 		}
 		break;
@@ -133,10 +142,20 @@ void ADanmakuGameMode::Tick(float DeltaTime)
 		FormationTimer -= DeltaTime;
 		if (FormationTimer <= 0.0f)
 		{
-			TargetToSurround = nullptr;
-			CurrentState = ESwarmState::Roaming;
+			ExecuteResearch();
+			CurrentState = ESwarmState::Researching;
+			FormationTimer = 5.0f;
 		}
 		break;
+
+	case ESwarmState::Researching:
+		FormationTimer -= DeltaTime;
+		if (FormationTimer <= 0.0f)
+		{
+			TargetToSurround = nullptr;
+			ReleaseFormation();
+			CurrentState = ESwarmState::Roaming;
+		}
 	}
 
 	if (LandingDelay > 0.0f) LandingDelay -= DeltaTime;
