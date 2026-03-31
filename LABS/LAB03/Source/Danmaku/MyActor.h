@@ -62,4 +62,5 @@ protected:
 	float CurveSpeed = 1.0f;
 
 	EMovementState CurrentState = EMovementState::Roaming;
+	virtual void GenerateRoutes();
 };

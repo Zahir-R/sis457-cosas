@@ -20,10 +20,8 @@ AMyActor::AMyActor()
 	}
 }
 
-// Called when the game starts or when spawned
-void AMyActor::BeginPlay()
+void AMyActor::GenerateRoutes()
 {
-	Super::BeginPlay();
 	InitialPosition = GetActorLocation();
 	WayPoints.Empty();
 
@@ -101,6 +99,13 @@ void AMyActor::ResumeAutoMovement()
 {
 	MovementSpeed = OriginalMovementSpeed;
 	CurrentState = EMovementState::Roaming;
+}
+
+// Called when the game starts or when spawned
+void AMyActor::BeginPlay()
+{
+	Super::BeginPlay();
+	GenerateRoutes();
 }
 
 // Called every frame
