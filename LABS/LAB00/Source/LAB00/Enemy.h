@@ -23,7 +23,7 @@ public:
 	FVector MaxWorldLimits = FVector(1000, 1000, 0);
 	FVector MinWorldLimits = FVector(-1000, -1000, 0);
 		
-	float FireRate = 2.0f;
+	float FireRate = 0.10f;
 	TSubclassOf<class ALAB00Projectile> ProjectileClass;
 
 private:
