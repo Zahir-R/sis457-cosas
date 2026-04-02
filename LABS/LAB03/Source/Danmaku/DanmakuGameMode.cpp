@@ -13,6 +13,10 @@ ADanmakuGameMode::ADanmakuGameMode()
 	// set default pawn class to our character class
 	DefaultPawnClass = ADanmakuPawn::StaticClass();
 	PrimaryActorTick.bCanEverTick = true;
+
+	BlockClass = AActor::StaticClass();
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> CubeMeshFinder(TEXT("StaticMesh'/Game/StarterContent/Shapes/Shape_Cube.Shape_Cube'"));
+	if (CubeMeshFinder.Succeeded()) CubeMeshAsset = CubeMeshFinder.Object;
 }
 
 void ADanmakuGameMode::BeginPlay()
@@ -37,6 +41,38 @@ void ADanmakuGameMode::BeginPlay()
 				AMyActor* NewActor = World->SpawnActor<AMyActor>(ClassToSpawn, RandLoc, Rotation);
 		
 			if (NewActor) SpawnedActors.Add(NewActor);
+		}
+	}
+	GeneratePath();
+}
+
+void ADanmakuGameMode::GeneratePath()
+{
+	UWorld* World = GetWorld();
+	if (!World || !CubeMeshAsset) return;
+
+	FVector CursorLoc = FVector(-500.0f,0.0f, 150.0f);
+	int32 BlocksToSpawn = 20;
+
+	UStaticMesh* CubeMesh = CubeMeshAsset;
+
+	for (int32 i = 0; i < BlocksToSpawn; i++)
+	{
+		AActor* NewBlock = World->SpawnActor<AActor>(BlockClass, CursorLoc, FRotator::ZeroRotator);
+
+		if (NewBlock)
+		{
+			UStaticMeshComponent* MeshComp = NewObject<UStaticMeshComponent>(NewBlock);
+			if (MeshComp)
+			{
+				MeshComp->SetStaticMesh(CubeMesh);
+				NewBlock->SetRootComponent(MeshComp);
+				MeshComp->RegisterComponent();
+				NewBlock->SetActorLocation(CursorLoc);
+			}
+			Blocks.Insert(NewBlock);
+			CursorLoc.X += 200.0f;
+			CursorLoc.Y += FMath::RandRange(-200.0f, 200.0f);
 		}
 	}
 }

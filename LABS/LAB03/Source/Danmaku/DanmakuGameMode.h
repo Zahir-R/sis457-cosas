@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/GameModeBase.h"
 #include "MyActor.h"
+#include "Lista.h"
 #include "DanmakuGameMode.generated.h"
 
 enum class ESwarmState : uint8
@@ -51,4 +52,10 @@ private:
 
 	FVector ProjectileShotOrigin;
 	void ExecuteResearch();
+
+	MyList<AActor*> Blocks;
+	TSubclassOf<AActor> BlockClass;
+	UStaticMesh* CubeMeshAsset;
+
+	void GeneratePath();
 };

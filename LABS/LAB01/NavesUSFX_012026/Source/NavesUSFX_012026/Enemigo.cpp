@@ -1,7 +1,7 @@
 #include "Enemigo.h"
 #include "Components/StaticMeshComponent.h"
 
-AEnemigo::AEnemigo()
+AEnemigo::AEnemigo() : WayPoints(20)
 {
 	PrimaryActorTick.bCanEverTick = true;
 	
@@ -39,7 +39,7 @@ void AEnemigo::Tick(float DeltaTime)
 void AEnemigo::Move()
 {
 	FVector CurrentLocation = GetActorLocation();
-	FVector TargetLocation = WayPoints[IndexWayPoint];
+	FVector TargetLocation = WayPoints.Get(IndexWayPoint);
 	FVector Direction = (TargetLocation - CurrentLocation).GetSafeNormal();
 	FVector NewLocation = CurrentLocation + Direction * MovementSpeed * GetWorld()->DeltaTimeSeconds;
 	SetActorLocation(NewLocation);

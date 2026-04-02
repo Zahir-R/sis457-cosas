@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Lista.h"
 #include "Enemigo.generated.h"
 
 class UStaticMeshComponent;
@@ -29,7 +30,7 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
-	TArray<FVector> WayPoints;
+	TCustomList<FVector> WayPoints;
 	int32 IndexWayPoint;
 	FVector InitialPosition;
 	float Tolerance = 50.0f;
